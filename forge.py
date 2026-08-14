@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # pip install rich questionary pyfiglet pillow psutil qrcode opencv-python cryptography
 import os
 import sys
@@ -21,8 +22,30 @@ try:
     from PIL import Image
     import cv2
 except ImportError as e:
-    print(f"Missing dependency: {e}")
-    print("Please run: pip install rich questionary pyfiglet pillow psutil qrcode opencv-python cryptography")
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        console = Console()
+        console.clear()
+        console.print(Panel(
+            "[bold yellow]⚠️  MISSING DEPENDENCIES![/bold yellow]\n\n"
+            "Please install the required libraries using:\n\n"
+            "[bold white]pip install -r requirements.txt[/bold white]\n\n"
+            "Then run this script again.",
+            border_style="red",
+            expand=False
+        ))
+    except ImportError:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("\033[91m" + "═" * 50 + "\033[0m")
+        print("\033[91m║\033[0m \033[1;93m⚠️  MISSING DEPENDENCIES!\033[0m" + " " * 23 + "\033[91m║\033[0m")
+        print("\033[91m║\033[0m" + " " * 48 + "\033[91m║\033[0m")
+        print("\033[91m║\033[0m Please install the required libraries using:     \033[91m║\033[0m")
+        print("\033[91m║\033[0m                                                  \033[91m║\033[0m")
+        print("\033[91m║\033[0m \033[1;97mpip install -r requirements.txt\033[0m                  \033[91m║\033[0m")
+        print("\033[91m║\033[0m                                                  \033[91m║\033[0m")
+        print("\033[91m║\033[0m Then run this script again.                      \033[91m║\033[0m")
+        print("\033[91m" + "═" * 50 + "\033[0m")
     sys.exit(1)
 
 if os.name != 'nt':
@@ -32,10 +55,10 @@ if os.name != 'nt':
 console = Console()
 
 def clear_screen():
-    os.system('cls' if os.name == 'nt' else 'clear')
+    console.clear()
 
 def show_header():
-    clear_screen()
+    console.clear()
     banner = pyfiglet.figlet_format("FORGE", font="slant")
     console.print(f"[cyan]{banner}[/cyan]")
     console.print(Panel("[bold green]🗡️ The Swiss Army Knife Terminal 🗡️[/bold green]", expand=False))

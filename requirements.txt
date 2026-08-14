@@ -1,0 +1,8 @@
+rich
+questionary
+pyfiglet
+pillow
+psutil
+qrcode
+opencv-python
+cryptography
