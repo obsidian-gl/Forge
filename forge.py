@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# pip install rich questionary pyfiglet pillow psutil qrcode opencv-python cryptography
 import os
 import sys
 import time
@@ -17,34 +16,13 @@ try:
     from rich.table import Table
     from rich.live import Live
     from rich.markdown import Markdown
-    import qrcode
-    from PIL import Image
-    import cv2
-except ImportError as e:
-    try:
-        from rich.console import Console
-        from rich.panel import Panel
-        console = Console()
-        console.clear()
-        console.print(Panel(
-            "[bold yellow]⚠️  MISSING DEPENDENCIES![/bold yellow]\n\n"
-            "Please install the required libraries using:\n\n"
-            "[bold white]pip install -r requirements.txt[/bold white]\n\n"
-            "Then run this script again.",
-            border_style="red",
-            expand=False
-        ))
-    except ImportError:
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[91m" + "═" * 50 + "\033[0m")
-        print("\033[91m║\033[0m \033[1;93m⚠️  MISSING DEPENDENCIES!\033[0m" + " " * 23 + "\033[91m║\033[0m")
-        print("\033[91m║\033[0m" + " " * 48 + "\033[91m║\033[0m")
-        print("\033[91m║\033[0m Please install the required libraries using:     \033[91m║\033[0m")
-        print("\033[91m║\033[0m                                                  \033[91m║\033[0m")
-        print("\033[91m║\033[0m \033[1;97mpip install -r requirements.txt\033[0m                  \033[91m║\033[0m")
-        print("\033[91m║\033[0m                                                  \033[91m║\033[0m")
-        print("\033[91m║\033[0m Then run this script again.                      \033[91m║\033[0m")
-        print("\033[91m" + "═" * 50 + "\033[0m")
+except ImportError:
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print("\033[91m" + "═" * 50 + "\033[0m")
+    print("\033[91m║\033[0m \033[1;93m⚠️  MISSING CORE DEPENDENCIES!\033[0m" + " " * 18 + "\033[91m║\033[0m")
+    print("\033[91m║\033[0m Please install the required lightweight libraries: \033[91m║\033[0m")
+    print("\033[91m║\033[0m \033[1;97mpip install -r requirements.txt\033[0m                    \033[91m║\033[0m")
+    print("\033[91m" + "═" * 50 + "\033[0m")
     sys.exit(1)
 
 if os.name != 'nt':
@@ -76,7 +54,6 @@ def matrix_rain():
                 
                 if drops[i] < rows:
                     char = chr(random.randint(0x30A0, 0x30FF))
-                    # Head is white, tail is green
                     out += f"\033[{drops[i]};{i}H\033[97m{char}\033[0m"
                     if drops[i] > 0:
                         char2 = chr(random.randint(0x30A0, 0x30FF))
@@ -135,6 +112,18 @@ def _getch():
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
 
+def _non_blocking_getch():
+    if os.name == 'nt':
+        import msvcrt
+        if msvcrt.kbhit():
+            return msvcrt.getch()
+        return None
+    else:
+        dr, dw, de = select.select([sys.stdin], [], [], 0)
+        if dr:
+            return sys.stdin.read(1)
+        return None
+
 def hacker_typer():
     quotes = [
         "Talk is cheap. Show me the code. - Linus Torvalds",
@@ -189,6 +178,13 @@ def hacker_typer():
     _getch() # Wait for keypress
 
 def qr_generator():
+    try:
+        import qrcode
+    except ImportError:
+        console.print(Panel("⚠️ QR Generator requires 'qrcode'.\nInstall with: [bold white]pip install qrcode[/bold white]", style="bold red", expand=False))
+        console.input("\nPress Enter to continue...")
+        return
+        
     clear_screen()
     text = questionary.text("Enter text or URL to encode:").ask()
     if not text:
@@ -209,6 +205,13 @@ def qr_generator():
     console.input("\nPress Enter to continue...")
 
 def image_to_ascii():
+    try:
+        from PIL import Image
+    except ImportError:
+        console.print(Panel("⚠️ Image Preview requires 'pillow'.\nInstall with: [bold white]pip install pillow[/bold white]", style="bold red", expand=False))
+        console.input("\nPress Enter to continue...")
+        return
+        
     clear_screen()
     path = questionary.path("Enter image file path:").ask()
     if not path or not os.path.exists(path):
@@ -240,19 +243,20 @@ def image_to_ascii():
         console.print(f"[red]Error processing image: {e}[/red]")
         time.sleep(2)
 
-def _non_blocking_getch():
-    if os.name == 'nt':
-        import msvcrt
-        if msvcrt.kbhit():
-            return msvcrt.getch()
-        return None
-    else:
-        dr, dw, de = select.select([sys.stdin], [], [], 0)
-        if dr:
-            return sys.stdin.read(1)
-        return None
-
 def video_player():
+    try:
+        import imageio
+        import numpy as np
+        from PIL import Image
+    except ImportError:
+        console.print(Panel(
+            "⚠️ Video Player requires 'imageio', 'imageio-ffmpeg', 'numpy', and 'pillow'.\n"
+            "Install with: [bold white]pip install imageio imageio-ffmpeg numpy pillow[/bold white]",
+            style="bold red", expand=False
+        ))
+        console.input("\nPress Enter to continue...")
+        return
+        
     clear_screen()
     path = questionary.path("Enter mp4 file path:").ask()
     if not path or not os.path.exists(path):
@@ -260,16 +264,15 @@ def video_player():
         time.sleep(1)
         return
         
-    cap = cv2.VideoCapture(path)
-    if not cap.isOpened():
-        console.print("[red]Failed to open video[/red]")
-        time.sleep(1)
+    try:
+        reader = imageio.get_reader(path)
+        meta = reader.get_meta_data()
+        fps = meta.get('fps', 30)
+        total_frames = meta.get('nframes', 0)
+    except Exception as e:
+        console.print(f"[red]Failed to open video: {e}[/red]")
+        time.sleep(2)
         return
-        
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    if fps == 0:
-        fps = 30
         
     chars = ["█", "▓", "▒", "░", " "]
     paused = False
@@ -280,6 +283,7 @@ def video_player():
         tty.setraw(sys.stdin.fileno())
         
     try:
+        current_frame_idx = 0
         while True:
             ch = _non_blocking_getch()
             if ch:
@@ -289,59 +293,60 @@ def video_player():
                     paused = not paused
                 elif ch == '\x1b': # Escape sequence for arrows
                     ch2 = sys.stdin.read(2)
-                    current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
                     if ch2 == '[C': # Right arrow
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, min(total_frames - 1, current_frame + 10 * fps))
+                        current_frame_idx = min(total_frames - 1, current_frame_idx + int(10 * fps))
                     elif ch2 == '[D': # Left arrow
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, current_frame - 10 * fps))
+                        current_frame_idx = max(0, current_frame_idx - int(10 * fps))
             
             if paused:
                 time.sleep(0.1)
                 continue
                 
-            ret, frame = cap.read()
-            if not ret:
+            try:
+                frame = reader.get_data(current_frame_idx)
+            except IndexError:
                 break
                 
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            frame_img = Image.fromarray(frame).convert('L')
             cols, rows = os.get_terminal_size()
             width = min(80, cols)
             
-            aspect_ratio = frame.shape[0] / frame.shape[1]
+            aspect_ratio = frame_img.height / frame_img.width
             new_height = int(aspect_ratio * width * 0.45)
-            frame = cv2.resize(frame, (width, new_height))
+            frame_img = frame_img.resize((width, new_height))
             
+            pixels = frame_img.getdata()
             out = ""
-            for row in frame:
-                for p in row:
-                    out += chars[int(p / 256 * len(chars))]
-                out += "\n"
+            for i, p in enumerate(pixels):
+                if i > 0 and i % width == 0:
+                    out += "\n"
+                out += chars[int(p / 256 * len(chars))]
                 
-            current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
-            curr_sec = int(current_frame / fps)
-            tot_sec = int(total_frames / fps) if total_frames > 0 else 0
+            curr_sec = int(current_frame_idx / fps) if fps else 0
+            tot_sec = int(total_frames / fps) if total_frames > 0 and fps else 0
             
             curr_str = f"{curr_sec//60:02d}:{curr_sec%60:02d}"
             tot_str = f"{tot_sec//60:02d}:{tot_sec%60:02d}"
             
             prog_len = 12
-            prog_filled = int((current_frame / total_frames) * prog_len) if total_frames > 0 else 0
+            prog_filled = int((current_frame_idx / total_frames) * prog_len) if total_frames > 0 else 0
             prog_bar = "█" * prog_filled + "░" * (prog_len - prog_filled)
             status_icon = "⏸️" if paused else "▶️"
             
             status_bar = f"\n{status_icon} [{prog_bar}] {curr_str} / {tot_str} | Space: Pause | L/R: Skip | q: Quit"
             
-            sys.stdout.write('\033[H') # Move cursor to top-left
+            sys.stdout.write('\033[H')
             sys.stdout.write(out + status_bar)
             sys.stdout.flush()
             
+            current_frame_idx += 1
             time.sleep(1/fps)
     except Exception:
         pass
     finally:
         if os.name != 'nt':
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        cap.release()
+        reader.close()
 
 def iron_vault():
     clear_screen()
@@ -378,18 +383,62 @@ def iron_vault():
         
     console.input("\nPress Enter to return to menu...")
 
+def file_locker():
+    try:
+        from cryptography.fernet import Fernet
+    except ImportError:
+        console.print(Panel("⚠️ File Locker requires 'cryptography'.\nInstall with: [bold white]pip install cryptography[/bold white]", style="bold red", expand=False))
+        console.input("\nPress Enter to continue...")
+        return
+        
+    clear_screen()
+    action = questionary.select("Choose action:", choices=["Encrypt File", "Decrypt File"]).ask()
+    if not action: return
+    
+    path = questionary.path("Enter file path:").ask()
+    if not path or not os.path.exists(path):
+        console.print("[red]File not found.[/red]")
+        time.sleep(1)
+        return
+
+    try:
+        if action == "Encrypt File":
+            key = Fernet.generate_key()
+            f = Fernet(key)
+            with open(path, 'rb') as file:
+                original = file.read()
+            encrypted = f.encrypt(original)
+            out_path = path + '.locked'
+            with open(out_path, 'wb') as file:
+                file.write(encrypted)
+            console.print(Panel(f"File encrypted to: [bold green]{out_path}[/bold green]\n\nYOUR KEY (SAVE THIS!):\n[bold yellow]{key.decode()}[/bold yellow]", title="File Locked 🔐", expand=False))
+        else:
+            key = questionary.password("Enter decryption key:").ask()
+            if not key: return
+            f = Fernet(key.encode())
+            with open(path, 'rb') as file:
+                encrypted = file.read()
+            decrypted = f.decrypt(encrypted)
+            out_path = path.replace('.locked', '') if '.locked' in path else path + '.unlocked'
+            with open(out_path, 'wb') as file:
+                file.write(decrypted)
+            console.print(Panel(f"File decrypted to: [bold green]{out_path}[/bold green]", title="File Unlocked 🔓", expand=False))
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        
+    console.input("\nPress Enter to return to menu...")
+
 def system_scope():
     try:
         import psutil
     except ImportError:
         console.print(Panel(
-            "[bold red]System Scope is not supported on this device![/bold red]\n\n"
-            "The `psutil` library is required but cannot be installed on your platform (e.g., Android/Termux).",
-            title="⚠️ Unsupported Feature",
-            border_style="red",
-            expand=False
+            "⚠️ System Scope requires 'psutil'.\n"
+            "Install with: [bold white]pip install psutil[/bold white]\n\n"
+            "(Note: psutil may not compile properly on Android/Termux environments)",
+            style="bold red", expand=False
         ))
-        console.input("\nPress Enter to return to menu...")
+        console.input("\nPress Enter to continue...")
         return
         
     try:
@@ -431,6 +480,7 @@ def main():
                 "🖼️ Image to ASCII Preview",
                 "🎬 Video Player (ASCII Cinema)",
                 "🔐 Iron Vault (Password Gen)",
+                "🗄️ File Locker (Cryptography)",
                 "📊 System Scope",
                 "❌ Exit Forge"
             ],
@@ -454,6 +504,8 @@ def main():
             video_player()
         elif choice.startswith("🔐"):
             iron_vault()
+        elif choice.startswith("🗄️"):
+            file_locker()
         elif choice.startswith("📊"):
             system_scope()
 
