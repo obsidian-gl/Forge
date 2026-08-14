@@ -17,7 +17,6 @@ try:
     from rich.table import Table
     from rich.live import Live
     from rich.markdown import Markdown
-    import psutil
     import qrcode
     from PIL import Image
     import cv2
@@ -380,6 +379,19 @@ def iron_vault():
     console.input("\nPress Enter to return to menu...")
 
 def system_scope():
+    try:
+        import psutil
+    except ImportError:
+        console.print(Panel(
+            "[bold red]System Scope is not supported on this device![/bold red]\n\n"
+            "The `psutil` library is required but cannot be installed on your platform (e.g., Android/Termux).",
+            title="⚠️ Unsupported Feature",
+            border_style="red",
+            expand=False
+        ))
+        console.input("\nPress Enter to return to menu...")
+        return
+        
     try:
         with Live(refresh_per_second=1) as live:
             while True:

@@ -2,7 +2,7 @@ rich
 questionary
 pyfiglet
 pillow
-psutil
 qrcode
 opencv-python
 cryptography
+# psutil  # Uncomment this line if you are on Windows/Linux/macOS to enable 'System Scope'
